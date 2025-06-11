@@ -1,0 +1,49 @@
+version: '3'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: mlops/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../data:/app/data
+      - ../vector_db:/app/vector_db
+      - ../model:/app/model
+    environment:
+      - NAMES_FILE=/app/data/processed/khmer_names.txt
+      - MODEL_NAME=paraphrase-multilingual-mpnet-base-v2
+      - VECTOR_DB_PATH=/app/vector_db/khmer_names.pkl
+      - DEVICE=cpu
+      - LOG_LEVEL=INFO
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+
+  webapp:
+    build:
+      context: ..
+      dockerfile: mlops/Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../data:/app/data
+      - ../vector_db:/app/vector_db
+      - ../model:/app/model
+    environment:
+      - MODEL_DIR=/app/model
+      - VECTOR_DB_DIR=/app/vector_db
+    command: streamlit run app/app.py
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  data:
+  vector_db:
+  model:
+
+# Usage: 
+# - Start all services: docker-compose up -d
+# - View logs: docker-compose logs -f
+# - Stop all services: docker-compose down 
